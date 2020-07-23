@@ -80,8 +80,7 @@ for dev in devices:
         Save_File.close
         print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         print("Finished Config Backup for " + hostname )
-        print("Backup Folder Name ''" + clock + "''")
-        print("Backup File Name ''" + name + "-" + hostname + ".txt''")
+        print("Backup File Location ''/"  + clock + "/" + name + "-" + hostname + ".txt" "''")
         print ("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         time.sleep(2)
 
