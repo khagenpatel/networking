@@ -38,7 +38,7 @@ devices=[cisco_1]
 
 #Print recent time to create folder name
 clock = datetime.datetime.now().strftime("%B-%d-%Y %I-%M%p")
-print(clock)
+
 
 #Create Directory - name: including Date and Time
 home_dir = ("Backup on " + clock )
