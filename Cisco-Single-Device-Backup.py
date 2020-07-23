@@ -74,7 +74,7 @@ for dev in devices:
     Save_File.write(output)
     Save_File.close
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("Finished Config Backup for " + hostname)
+    print("Finished Config Backup for " + name)
     print("Backup File Location ''/" + clock + "/" + name + "-" + hostname + ".txt" "''")
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     time.sleep(2)
