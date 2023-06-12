@@ -13,8 +13,11 @@ def get_live_hosts(subnet):
         line = line.decode().strip()
         if "Nmap scan report for" in line:
             parts = line.split()
-            live_host = parts[4]
-            live_ip = parts[5][1:-1]
+            if len(parts) > 4:
+                live_host = ' '.join(parts[4:])
+            else:
+                live_host = "No hostname"
+            live_ip = parts[-1]
             live_hosts.append((live_host, live_ip))
     
     return live_hosts
