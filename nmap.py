@@ -3,8 +3,8 @@ import csv
 
 def get_live_host(ip):
     command = f"nmap -sn {ip}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    output = result.stdout
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+    output = result.stdout.decode()
     
     live_host = "N/A"
     live_ip = "N/A"
@@ -29,7 +29,7 @@ def main():
         writer.writerow(header + ['Live_Host', "Live_host's_IP"])
         
         for row in data:
-            hostname = row[0]
+            hostname = row[0].rstrip("#")
             subnet = row[1]
             interface = row[2]
             live_host, live_ip = get_live_host(subnet)
