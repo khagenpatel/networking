@@ -21,12 +21,15 @@ with open('output.csv', 'w', newline='') as csvfile:
         hostname_match = re.search(r'([^\n]+)#', section)
         if hostname_match:
             hostname = hostname_match.group(1).strip()
-            print(f"Hostname: {hostname}")
         else:
-            continue  # Skip section if hostname is not found
+            hostname_match = re.search(r'show ip route connected\s+([\w#-]+)', section)
+            if hostname_match:
+                hostname = hostname_match.group(1).strip()
+            else:
+                continue  # Skip section if hostname is not found
 
         # Extracting entries from the section
-        entries = re.findall(r'C\s+([\d./]+)\s+is directly connected,\s+(\w+)', section)
+        entries = re.findall(r'^[CL]\s+(\S+)\s+is directly connected,\s+(\w+)', section, re.MULTILINE)
         print("Entries:")
         print(entries)
 
