@@ -3,35 +3,46 @@ import csv
 import logging
 
 # Configure logging
-logging.basicConfig(filename='script.log', level=logging.INFO)
+logging.basicConfig(filename='parse.log', level=logging.DEBUG)
 
-try:
-    # Open your text file
-    with open('path_to_your_textfile.txt', 'r') as file:
-        data = file.read()
+def parse_data():
+    try:
+        # Read the data from "input.txt"
+        with open("input.txt", "r") as file:
+            data = file.read()
 
-    # Split the data by the command "show ip route connected"
-    sections = data.split('show ip route connected')
+        # Split the data into sections
+        sections = re.split(r'(?=show ip route connected)', data)
 
-    # Prepare data for CSV
-    csv_data = []
+        output_data = []
 
-    for section in sections[1:]:  # Skip the first section, which is empty
-        # Find the hostname in the section (strip the "#" and any trailing whitespace)
-        hostname = re.search(r'([\w\-]+#)', section)
-        if hostname:
-            hostname = hostname.group(0).rstrip('#').strip()
+        # Loop over the sections
+        for section in sections:
+            # Find the hostname in the section
+            hostname_search = re.search(r'(\S+)#$', section, re.M)
+            if hostname_search:
+                hostname = hostname_search.group(1)
+            else:
+                continue  # Skip this section if there's no hostname
 
-        # Find the IP routes and interfaces in the section
-        routes = re.findall(r'(C\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}) is directly connected, (\w+))', section)
-        for route in routes:
-            csv_data.append([hostname, route[1], route[2]])
+            # Find all connected routes in the section
+            connected_routes = re.findall(r'(C        \S+ is directly connected, \S+)', section)
 
-    # Write data to CSV
-    with open('output.csv', 'wb') as file:
-        writer = csv.writer(file)
-        writer.writerow(["hostname", "subnet_in_cidr", "interface"])
-        writer.writerows(csv_data)
-except Exception as e:
-    logging.exception("Exception occurred")
+            for route in connected_routes:
+                subnet_in_cidr, interface = re.search(r'C        (\S+) is directly connected, (\S+)', route).groups()
+                output_data.append([hostname, subnet_in_cidr, interface])
 
+        # Write output to "output.csv"
+        with open("output.csv", "w", newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(["hostname", "subnet_in_cidr", "interface"])
+            writer.writerows(output_data)
+
+        logging.info("Parsing complete, data written to output.csv")
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise
+
+if __name__ == "__main__":
+    parse_data()
