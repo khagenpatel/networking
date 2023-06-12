@@ -4,12 +4,12 @@ import csv
 def get_live_hosts(subnet):
     command = f"nmap -sn {subnet}"
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    output, _ = process.communicate()
-    output = output.decode().strip()
+    process.wait()
     
     live_hosts = []
     
-    for line in output.splitlines():
+    for line in process.stdout:
+        line = line.decode().strip()
         if "Nmap scan report for" in line:
             parts = line.split()
             live_host = parts[4]
@@ -26,15 +26,19 @@ def main():
     
     with open('output.csv', 'w', newline='') as output_file:
         writer = csv.writer(output_file)
-        writer.writerow(header + ['Live_Hosts'])
+        writer.writerow(header + ['Live_Host', 'Live_IP'])
         
         for row in data:
             hostname = row[0].rstrip("#")
             subnet = row[1]
             interface = row[2]
             live_hosts = get_live_hosts(subnet)
-            live_hosts_str = ', '.join([f"{host} ({ip})" for host, ip in live_hosts])
-            writer.writerow(row + [live_hosts_str])
+            
+            for i, (live_host, live_ip) in enumerate(live_hosts):
+                if i == 0:
+                    writer.writerow(row + [live_host, live_ip])
+                else:
+                    writer.writerow([hostname, subnet, interface, live_host, live_ip])
     
     print("Output saved to output.csv")
 
