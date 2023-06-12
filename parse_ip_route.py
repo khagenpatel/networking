@@ -12,7 +12,7 @@ def parse_data():
             data = file.read()
 
         # Split the data into sections
-        sections = re.split(r'(?=show ip route connected)', data)
+        sections = re.split('show ip route connected', data)
 
         output_data = []
 
