@@ -20,7 +20,7 @@ try:
         # Find the hostname in the section (strip the "#" and any trailing whitespace)
         hostname = re.search(r'([\w\-]+#)', section)
         if hostname:
-            hostname = hostname.group().rstrip('#').strip()
+            hostname = hostname.group(0).rstrip('#').strip()
 
         # Find the IP routes and interfaces in the section
         routes = re.findall(r'(C\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}) is directly connected, (\w+))', section)
@@ -28,7 +28,7 @@ try:
             csv_data.append([hostname, route[1], route[2]])
 
     # Write data to CSV
-    with open('output.csv', 'w', newline='') as file:
+    with open('output.csv', 'wb') as file:
         writer = csv.writer(file)
         writer.writerow(["hostname", "subnet_in_cidr", "interface"])
         writer.writerows(csv_data)
