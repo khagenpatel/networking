@@ -1,5 +1,6 @@
 import subprocess
 import csv
+import concurrent.futures
 
 def get_live_hosts(subnet):
     command = f"nmap -sn {subnet}"
@@ -18,27 +19,40 @@ def get_live_hosts(subnet):
     
     return live_hosts
 
+def process_row(row):
+    hostname = row[0].rstrip("#")
+    subnet = row[1]
+    interface = row[2]
+    live_hosts = get_live_hosts(subnet)
+    
+    output_rows = []
+    
+    for i, (live_host, live_ip) in enumerate(live_hosts):
+        if i == 0:
+            output_rows.append(row + [live_host, live_ip])
+        else:
+            output_rows.append([hostname, subnet, interface, live_host, live_ip])
+    
+    return output_rows
+
 def main():
     with open('input.csv', 'r') as input_file:
         reader = csv.reader(input_file)
         header = next(reader)  # Read the header row
         data = list(reader)
     
+    output_rows = []
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        results = executor.map(process_row, data)
+        
+        for result in results:
+            output_rows.extend(result)
+    
     with open('output.csv', 'w', newline='') as output_file:
         writer = csv.writer(output_file)
         writer.writerow(header + ['Live_Host', 'Live_IP'])
-        
-        for row in data:
-            hostname = row[0].rstrip("#")
-            subnet = row[1]
-            interface = row[2]
-            live_hosts = get_live_hosts(subnet)
-            
-            for i, (live_host, live_ip) in enumerate(live_hosts):
-                if i == 0:
-                    writer.writerow(row + [live_host, live_ip])
-                else:
-                    writer.writerow([hostname, subnet, interface, live_host, live_ip])
+        writer.writerows(output_rows)
     
     print("Output saved to output.csv")
 
