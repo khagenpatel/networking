@@ -3,7 +3,7 @@ import csv
 
 def get_live_host(hostname, ip):
     command = f"nmap -sn {ip}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     output = result.stdout.strip()
     if "Host is up" in output:
         live_host = hostname.strip("#")
