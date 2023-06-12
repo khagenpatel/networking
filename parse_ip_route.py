@@ -30,8 +30,6 @@ with open('output.csv', 'w', newline='') as csvfile:
 
         # Extracting entries from the section
         entries = re.findall(r'^[CL]\s+(\S+)\s+is directly connected,\s+(\w+)', section, re.MULTILINE)
-        print("Entries:")
-        print(entries)
 
         # Iterating through each line in the section
         for entry in entries:
