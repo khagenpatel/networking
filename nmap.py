@@ -1,31 +1,22 @@
 import subprocess
 import csv
-import concurrent.futures
 
-def get_live_host(subnet):
+def get_live_hosts(subnet):
     command = f"nmap -sn {subnet}"
-    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
-    output = result.stdout.decode().strip()
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    output, _ = process.communicate()
+    output = output.decode().strip()
     
-    live_host = "N/A"
-    live_ip = "N/A"
+    live_hosts = []
     
     for line in output.splitlines():
         if "Nmap scan report for" in line:
             parts = line.split()
             live_host = parts[4]
             live_ip = parts[5][1:-1]
-            break
+            live_hosts.append((live_host, live_ip))
     
-    return live_host, live_ip
-
-def process_subnet(row):
-    hostname = row[0].rstrip("#")
-    subnet = row[1]
-    interface = row[2]
-    live_host, live_ip = get_live_host(subnet)
-    
-    return [hostname, subnet, interface, live_host, live_ip]
+    return live_hosts
 
 def main():
     with open('input.csv', 'r') as input_file:
@@ -35,11 +26,15 @@ def main():
     
     with open('output.csv', 'w', newline='') as output_file:
         writer = csv.writer(output_file)
-        writer.writerow(header + ['Live_Host', "Live_host's_IP"])
+        writer.writerow(header + ['Live_Hosts'])
         
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(process_subnet, data)
-            writer.writerows(results)
+        for row in data:
+            hostname = row[0].rstrip("#")
+            subnet = row[1]
+            interface = row[2]
+            live_hosts = get_live_hosts(subnet)
+            live_hosts_str = ', '.join([f"{host} ({ip})" for host, ip in live_hosts])
+            writer.writerow(row + [live_hosts_str])
     
     print("Output saved to output.csv")
 
