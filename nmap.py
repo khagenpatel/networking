@@ -4,8 +4,8 @@ import concurrent.futures
 
 def get_live_host(subnet):
     command = f"nmap -sn {subnet}"
-    result = subprocess.run(command, shell=True, capture_output=True, text=True)
-    output = result.stdout.strip()
+    result = subprocess.run(command, shell=True, stdout=subprocess.PIPE)
+    output = result.stdout.decode().strip()
     
     live_host = "N/A"
     live_ip = "N/A"
