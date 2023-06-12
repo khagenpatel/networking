@@ -20,20 +20,25 @@ def get_live_hosts(subnet):
     return live_hosts
 
 def process_row(row):
-    hostname = row[0].rstrip("#")
-    subnet = row[1]
-    interface = row[2]
-    live_hosts = get_live_hosts(subnet)
+    try:
+        hostname = row[0].rstrip("#")
+        subnet = row[1]
+        interface = row[2]
+        live_hosts = get_live_hosts(subnet)
+        
+        output_rows = []
+        
+        for i, (live_host, live_ip) in enumerate(live_hosts):
+            if i == 0:
+                output_rows.append(row + [live_host, live_ip])
+            else:
+                output_rows.append([hostname, subnet, interface, live_host, live_ip])
+        
+        return output_rows
     
-    output_rows = []
-    
-    for i, (live_host, live_ip) in enumerate(live_hosts):
-        if i == 0:
-            output_rows.append(row + [live_host, live_ip])
-        else:
-            output_rows.append([hostname, subnet, interface, live_host, live_ip])
-    
-    return output_rows
+    except IndexError:
+        error_row = row + ['Error: Missing Values']
+        return [error_row]
 
 def main():
     with open('input.csv', 'r') as input_file:
@@ -57,4 +62,6 @@ def main():
     print("Output saved to output.csv")
 
 if __name__ == "__main__":
+    print("Processing...")
     main()
+    print("Completed!")
