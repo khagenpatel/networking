@@ -1,19 +1,29 @@
 import re
 import csv
 
-# Open the input file and create the CSV file for writing
-with open('input.txt', 'r') as file, open('output.csv', 'w', newline='') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerow(['Hostname', 'Subnet'])
+# Open your text file
+with open('input.txt', 'r') as file:
+    data = file.read()
 
-    # Pattern for matching the hostname and subnet
-    pattern = r"^(.*?)#\r?\n(?:.*?\r?\n)*?(C\s+([\d./]+))"
+# Split the data by the command "show ip route connected"
+sections = data.split('show ip route connected')
 
-    # Iterate through each line of the file
-    for line in file:
-        # Search for the pattern in each line
-        match = re.search(pattern, line)
-        if match:
-            hostname = match.group(1)
-            subnet = match.group(3)
-            writer.writerow([hostname, subnet])
+# Prepare data for CSV
+csv_data = []
+
+for section in sections[1:]:  # Skip the first section, which is empty
+    # Find the hostname in the section (strip the "#" and any trailing whitespace)
+    hostname = re.search(r'([\w\-]+#)', section)
+    if hostname:
+        hostname = hostname.group().rstrip('#').strip()
+
+    # Find the IP routes and interfaces in the section
+    routes = re.findall(r'(C\s+(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/\d{1,2}) is directly connected, (\w+))', section)
+    for route in routes:
+        csv_data.append([hostname, route[1], route[2]])
+
+# Write data to CSV
+with open('output.csv', 'w', newline='') as file:
+    writer = csv.writer(file)
+    writer.writerow(["hostname", "subnet_in_cidr", "interface"])
+    writer.writerows(csv_data)
