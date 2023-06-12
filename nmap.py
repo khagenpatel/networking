@@ -15,19 +15,18 @@ def get_live_host(hostname, ip):
 input_file = "input.csv"
 output_file = "live_hosts.csv"
 
-live_hosts = []
 with open(input_file, "r") as file:
     csv_reader = csv.reader(file)
     next(csv_reader)  # Skip the header row
-    for row in csv_reader:
-        hostname, subnet, interface = row
-        live_host, live_ip = get_live_host(hostname, subnet)
-        if live_host and live_ip:
-            live_hosts.append([hostname, subnet, interface, live_host, live_ip])
 
-with open(output_file, "w", newline="") as file:
-    csv_writer = csv.writer(file)
-    csv_writer.writerow(["Hostname", "Subnet", "Interface", "Live Host", "Live IP"])
-    csv_writer.writerows(live_hosts)
+    with open(output_file, "w", newline="") as output_file:
+        csv_writer = csv.writer(output_file)
+        csv_writer.writerow(["Hostname", "Subnet", "Interface", "Live Host", "Live IP"])
+
+        for row in csv_reader:
+            hostname, subnet, interface = row
+            live_host, live_ip = get_live_host(hostname, subnet)
+            if live_host and live_ip:
+                csv_writer.writerow([hostname, subnet, interface, live_host, live_ip])
 
 print(f"Output saved to {output_file}.")
