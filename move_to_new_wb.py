@@ -17,7 +17,7 @@ with open('input.csv', mode='r') as csv_file:
     headers = next(csv_reader)
     ws_all.append(headers)
     ws_duplicates.append(headers)
-    data_rows = [row for row in csv_reader]
+    data_rows = [list(row) for row in csv_reader]
     for row in data_rows:
         ws_all.append(row)
 
@@ -30,7 +30,7 @@ for row in ws_all.iter_rows(min_row=2, min_col=2, max_col=2):
         if cell.value in subnets:
             # If this value has been seen before, it is a duplicate and should be moved
             duplicate_row = ws_all[cell.row]
-            ws_duplicates.append((c.value for c in duplicate_row))
+            ws_duplicates.append([c.value for c in duplicate_row])
             rows_to_delete.append(cell.row)
         else:
             # First time seeing this value, just remember it
