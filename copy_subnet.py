@@ -14,15 +14,15 @@ with open('input.csv', mode='r') as csv_file:
 
 # Highlight duplicates
 subnets = {}
-red_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+red_fill = PatternFill(start_color="FFFF0000", end_color="FFFF0000", fill_type="solid")
 
 for row in ws.iter_rows(min_row=2, min_col=2, max_col=2):
     for cell in row:
         if cell.value in subnets:
-            # Highlight this cell and the earlier cell that had the same value
+            # If this value has been seen before, it is a duplicate and should be highlighted
             cell.fill = red_fill
-            subnets[cell.value].fill = red_fill
         else:
+            # First time seeing this value, just remember it
             subnets[cell.value] = cell
 
 # Save the workbook to a file
