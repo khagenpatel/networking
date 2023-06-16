@@ -9,7 +9,7 @@ def format_mac(mac):
 def load_oui_dict():
     """Load OUI dictionary from the IEEE file"""
     oui_dict = {}
-    with open('oui.txt', 'r') as f:
+    with open('oui.txt', 'r', encoding='utf-8') as f:
         for line in f:
             if '(hex)' in line:
                 try:
@@ -49,8 +49,8 @@ with open(output_file, 'w', newline='') as f_output:
                     # Split line into columns
                     columns = line.split()
 
-                    # Check if line is an ARP entry (Internet protocol)
-                    if columns[0] == 'Internet':
+                    # Check if line is an ARP entry (Internet protocol) and has at least 6 columns
+                    if columns[0] == 'Internet' and len(columns) >= 6:
                         mac = format_mac(columns[3].replace('.', ''))
                         oui = mac[:8]  # Get OUI part of the MAC address
                         company = oui_dict.get(oui, 'Unknown')  # Get company from OUI dictionary, or 'Unknown' if not found
