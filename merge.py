@@ -15,9 +15,13 @@ wb = load_workbook('file.xlsx')
 # Select the first sheet in the workbook
 ws = wb[wb.sheetnames[0]]
 
+# Add new headers for MAC Address and Company
+ws.cell(row=1, column=ws.max_column + 1, value="MAC_Address")
+ws.cell(row=1, column=ws.max_column + 1, value="Company")
+
 # Iterate through each row in the worksheet
-for row in ws.iter_rows(min_row=2, values_only=True):  # Skip header row (min_row=2)
-    live_ip = row[4]  # Assuming 'Live_IP' is the fifth column
+for row in ws.iter_rows(min_row=2, values_only=False):  # We need the cells not the values
+    live_ip = row[4].value  # Assuming 'Live_IP' is the fifth column
 
     # Lookup the MAC Address and Company in the dictionary
     if live_ip in csv_dict:
@@ -27,8 +31,9 @@ for row in ws.iter_rows(min_row=2, values_only=True):  # Skip header row (min_ro
         mac_address = 'not found'
         company = 'not found'
 
-    # Append MAC Address and Company to the row
-    ws.append(list(row) + [mac_address, company])
+    # Write MAC Address and Company to the row
+    ws.cell(row=row[0].row, column=ws.max_column - 1, value=mac_address)
+    ws.cell(row=row[0].row, column=ws.max_column, value=company)
 
 # Save workbook
 wb.save('output.xlsx')
