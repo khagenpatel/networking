@@ -8,14 +8,14 @@ try:
     sheet = workbook.active
 
     # Load the CSV file
-    with open('input2.csv', 'r') as csvfile:
+    with open('input2.csv', 'r', encoding='utf-8-sig') as csvfile:  # Specify the encoding for the CSV file
         csvreader = csv.reader(csvfile)
         next(csvreader)  # Skip the header row
 
         # Create a dictionary to store the mapping between hostnames and the other columns
         csv_data = {}
         for row in csvreader:
-            live_host = row[0].lower()  # Convert Live_Host to lowercase
+            live_host = row[0].lower().encode('ascii', 'ignore').decode()  # Convert Live_Host to lowercase and ASCII
             csv_data[live_host] = row[1:]  # Store the remaining columns in the dictionary
 
     # Iterate through the rows in the Excel file
@@ -23,7 +23,7 @@ try:
         live_host_full = row[3]  # Extract the full Live_Host value
         match = re.search(r'(\S+)\s', live_host_full)  # Extract the hostname using regex
         if match:
-            live_host = match.group(1).lower()  # Convert Live_Host to lowercase
+            live_host = match.group(1).lower().encode('ascii', 'ignore').decode()  # Convert Live_Host to lowercase and ASCII
             if live_host in csv_data:
                 # Get the values from the CSV file
                 values = csv_data[live_host]
