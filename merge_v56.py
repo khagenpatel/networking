@@ -31,7 +31,7 @@ if live_host_idx is None:
 ws.append(['Owning Transaction Cycle', 'CDR', 'IT Business Service', 'IT Service Instance', 'ITSI Environment'])
 
 # Regular expression pattern for hostname
-pattern = re.compile(r"(.+?)\.")
+pattern = re.compile(r"(.+?)[.\s]")
 
 # Process rows in Excel
 for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
@@ -43,6 +43,7 @@ for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
             cell.value = new_data[i-1]  # Update cell values
     else:
         print(f"Could not parse Live_Host value: {row[live_host_idx-1].value}")
+
 
 # Save workbook
 wb.save('input1_modified.xlsx')
