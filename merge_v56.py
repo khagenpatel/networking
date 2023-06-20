@@ -5,7 +5,7 @@ from openpyxl import load_workbook
 try:
     # Load the Excel file
     workbook = load_workbook('input1.xlsx')
-    sheet_name = 'Your_Sheet_Name'  # Replace 'Your_Sheet_Name' with the actual name of the worksheet
+    sheet_name = 'Originals'  # Replace 'Your_Sheet_Name' with the actual name of the worksheet
     sheet = workbook[sheet_name]
 
     # Load the CSV file
@@ -32,16 +32,11 @@ try:
                     values = csv_data[live_host]
 
                     # Add the values to the Excel file
-                    try:
-                        row[7].value = values[0] if len(values) > 0 else None  # Owning Transaction Cycle
-                        row[8].value = values[1] if len(values) > 1 else None  # CDR
-                        row[9].value = values[2] if len(values) > 2 else None  # IT Business Service
-                        row[10].value = values[3] if len(values) > 3 else None  # IT Service Instance
-                        row[11].value = values[4] if len(values) > 4 else None  # ITSI Environment
-                    except IndexError:
-                        print("IndexError: Row data:", row)
-                        print("IndexError: Values:", values)
-                        raise
+                    row[7].value = values[0] if len(values) > 0 else None  # Owning Transaction Cycle
+                    row[8].value = values[1] if len(values) > 1 else None  # CDR
+                    row[9].value = values[2][0] if len(values) > 2 and len(values[2]) > 0 else None  # IT Business Service
+                    row[10].value = values[2][1] if len(values) > 2 and len(values[2]) > 1 else None  # IT Service Instance
+                    row[11].value = values[2][2] if len(values) > 2 and len(values[2]) > 2 else None  # ITSI Environment
 
     # Save the modified Excel file
     workbook.save('output.xlsx')
