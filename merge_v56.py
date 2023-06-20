@@ -1,52 +1,48 @@
+import openpyxl
 import csv
 import re
-from openpyxl import load_workbook
+from collections import defaultdict
 
-try:
-    # Load the Excel file
-    workbook = load_workbook('input1.xlsx')
-    sheet_name = 'Originals'  # Replace 'Originals' with the actual name of the worksheet
-    sheet = workbook[sheet_name]
+# Load Excel workbook
+wb = openpyxl.load_workbook('input1.xlsx')
+ws = wb.active
 
-    # Load the CSV file
-    with open('input2.csv', 'r', encoding='utf-8-sig') as csvfile:  # Specify the encoding for the CSV file
-        csvreader = csv.reader(csvfile)
-        next(csvreader)  # Skip the header row
+# Read csv file and create a dictionary for easier search
+csv_data = defaultdict(lambda: ["Not found"]*5)
+with open('input2.csv', 'r') as f:
+    csv_reader = csv.reader(f)
+    headers = next(csv_reader)
+    for row in csv_reader:
+        csv_data[row[0].lower()] = row[1:6]
 
-        # Create a dictionary to store the mapping between hostnames and the other columns
-        csv_data = {}
-        for row in csvreader:
-            if len(row) > 0:
-                live_host = row[0].lower().encode('ascii', 'ignore').decode()  # Convert Live_Host to lowercase and ASCII
-                csv_data[live_host] = row[1:]  # Store the remaining columns in the dictionary
+# Find the index of 'Live_Host' column in Excel file
+live_host_idx = None
+for i, column in enumerate(ws.iter_cols(1, ws.max_column)):
+    if column[0].value == 'Live_Host':
+        live_host_idx = i + 1
+        break
 
-    # Iterate through the rows in the Excel file
-    for row in sheet.iter_rows(min_row=2):
-        if len(row) > 3:
-            live_host_full = row[3].value  # Extract the full Live_Host value
-            match = re.search(r'\b(\w+)\b', live_host_full)  # Extract the hostname using regex
-            if match:
-                live_host = match.group(1).lower().encode('ascii', 'ignore').decode()  # Convert Live_Host to lowercase and ASCII
-                if live_host in csv_data:
-                    # Get the values from the CSV file
-                    values = csv_data[live_host]
+# Verify that 'Live_Host' column is found in Excel file
+if live_host_idx is None:
+    print("Couldn't find 'Live_Host' column in the Excel file.")
+    exit()
 
-                    # Add the values to the Excel file
-                    row[7].value = values[0] if len(values) > 0 else 'Not found'  # Owning Transaction Cycle
-                    row[8].value = values[1] if len(values) > 1 else 'Not found'  # CDR
-                    row[9].value = values[2][0] if len(values) > 2 and len(values[2]) > 0 else 'Not found'  # IT Business Service
-                    row[10].value = values[2][1] if len(values) > 2 and len(values[2]) > 1 else 'Not found'  # IT Service Instance
-                    row[11].value = values[2][2] if len(values) > 2 and len(values[2]) > 2 else 'Not found'  # ITSI Environment
+# Append new columns in Excel
+ws.append(['Owning Transaction Cycle', 'CDR', 'IT Business Service', 'IT Service Instance', 'ITSI Environment'])
 
-                    # Print the updated values
-                    print("Updated row:", [cell.value for cell in row])
-                    print("Updated values:", values)
-                    print("---")
+# Regular expression pattern for hostname
+pattern = re.compile(r"(.+?)\.")
 
-    # Save the modified Excel file
-    workbook.save('output.xlsx')
+# Process rows in Excel
+for row in ws.iter_rows(min_row=2, max_row=ws.max_row):
+    match = pattern.match(row[live_host_idx-1].value)
+    if match:
+        live_host = match.group(1).lower()  # Get Live_Host and convert to lowercase
+        new_data = csv_data[live_host]  # Get new data from csv file
+        for i, cell in enumerate(row[-5:], start=1):
+            cell.value = new_data[i-1]  # Update cell values
+    else:
+        print(f"Could not parse Live_Host value: {row[live_host_idx-1].value}")
 
-    print("Data successfully updated in the Excel file!")
-
-except Exception as e:
-    print("An error occurred:", str(e))
+# Save workbook
+wb.save('input1_modified.xlsx')
