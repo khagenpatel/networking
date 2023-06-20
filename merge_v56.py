@@ -19,8 +19,8 @@ try:
             csv_data[live_host] = row[1:]  # Store the remaining columns in the dictionary
 
     # Iterate through the rows in the Excel file
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        live_host_full = row[3]  # Extract the full Live_Host value
+    for row in sheet.iter_rows(min_row=2):
+        live_host_full = row[3].value  # Extract the full Live_Host value
         match = re.search(r'(\S+)\s', live_host_full)  # Extract the hostname using regex
         if match:
             live_host = match.group(1).lower().encode('ascii', 'ignore').decode()  # Convert Live_Host to lowercase and ASCII
