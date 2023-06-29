@@ -43,11 +43,14 @@ def get_device_info(device):
         device_info = 'Device: ' + hostname + '\n\n'
 
         for command in commands:
-            stdin, stdout, stderr = client.exec_command(command)
-            output = stdout.read().decode('utf-8')
-            device_info += 'Command: ' + command + '\n'
-            device_info += output
-            device_info += '\n'
+            try:
+                stdin, stdout, stderr = client.exec_command(command)
+                output = stdout.read().decode('utf-8')
+                device_info += 'Command: ' + command + '\n'
+                device_info += output
+                device_info += '\n'
+            except EOFError:
+                print 'Error: Connection to {} closed unexpectedly.'.format(hostname)
 
         if device_type:
             print 'Retrieved information from {}. Device Type: {}'.format(hostname, device_type)
@@ -60,6 +63,7 @@ def get_device_info(device):
         print 'Authentication failed for {}.'.format(hostname)
     except paramiko.SSHException as e:
         print 'Error occurred while connecting to {}: {}'.format(hostname, str(e))
+
 
 
 
