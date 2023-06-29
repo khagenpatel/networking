@@ -23,9 +23,8 @@ for ip_address in ip_addresses:
         # Send the necessary commands and retrieve the output
         commands = ['show hostname', 'show mac address-table', 'show ip arp']
         for command in commands:
-            client.send(command + '\n')
-            client.expect('#')
-            output = client.recv(65535).decode('utf-8')
+            stdin, stdout, stderr = client.exec_command(command)
+            output = stdout.read().decode('utf-8')
 
             # Write the output to the notepad file
             output_file.write('\nDevice: {}\n'.format(ip_address))
@@ -33,7 +32,7 @@ for ip_address in ip_addresses:
             output_file.write(output)
 
     except Exception as e:
-        print('Error connecting to {}: {}'.format(ip_address, str(e)))
+        print 'Error connecting to {}: {}'.format(ip_address, str(e))
 
     finally:
         # Close the SSH connection
