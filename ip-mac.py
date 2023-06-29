@@ -1,116 +1,43 @@
-import getpass
-import threading
 import paramiko
 
-# Define the filename to save the output
-output_filename = 'device_info.txt'
+# Read the device IP addresses from device_list.txt
+with open('device_list.txt', 'r') as file:
+    ip_addresses = file.read().splitlines()
 
-def save_device_info(device_info):
-    """Save device information to a file."""
-    with open(output_filename, 'a', encoding='utf-8') as f:
-        f.write(device_info)
-        f.write('\n\n')
+# Define the common credentials
+username = 'abcd'
+password = 'defg'
 
-def get_device_info(device):
-    """Retrieve hostname, MAC addresses, and ARP table from a Cisco device."""
-    hostname = device['hostname']
-    username = device['username']
-    password = device['password']
+# Open the notepad file in append mode
+output_file = open('output.txt', 'a')
+
+for ip_address in ip_addresses:
+    # Create a new SSH client
+    client = paramiko.SSHClient()
+    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        client.connect(hostname, username=username, password=password)
+        # Connect to the device
+        client.connect(hostname=ip_address, username=username, password=password)
 
-        # Determine device type based on the prompt symbol
-        stdin, stdout, stderr = client.exec_command('')
-        prompt = stdout.read().decode('utf-8')
-
-        if '>' in prompt:
-            device_type = "cisco_ios"
-        elif '#' in prompt:
-            device_type = "cisco_nxos"
-        else:
-            device_type = ""
-
-        # Run show commands
-        commands = [
-            'show run | include hostname',
-            'show mac address-table',
-            'show ip arp',
-        ]
-
-        device_info = 'Device: ' + hostname + '\n\n'
-
+        # Send the necessary commands and retrieve the output
+        commands = ['show hostname', 'show mac address-table', 'show ip arp']
         for command in commands:
-            try:
-                stdin, stdout, stderr = client.exec_command(command)
-                output = stdout.read().decode('utf-8')
-                device_info += 'Command: ' + command + '\n'
-                device_info += output
-                device_info += '\n'
-            except EOFError:
-                print 'Error: Connection to {} closed unexpectedly.'.format(hostname)
+            client.send(command + '\n')
+            client.expect('#')
+            output = client.recv(65535).decode('utf-8')
 
-        if device_type:
-            print 'Retrieved information from {}. Device Type: {}'.format(hostname, device_type)
+            # Write the output to the notepad file
+            output_file.write(f'\nDevice: {ip_address}\n')
+            output_file.write(f'Command: {command}\n')
+            output_file.write(output)
 
-        save_device_info(device_info)
+    except Exception as e:
+        print(f'Error connecting to {ip_address}: {str(e)}')
 
+    finally:
+        # Close the SSH connection
         client.close()
 
-    except paramiko.AuthenticationException:
-        print 'Authentication failed for {}.'.format(hostname)
-    except paramiko.SSHException as e:
-        print 'Error occurred while connecting to {}: {}'.format(hostname, str(e))
-
-
-
-
-def process_device(device):
-    """Process a single device."""
-    get_device_info(device)
-
-def main():
-    # Specify the username and password
-    try:
-        username = getpass.getpass('Enter your username: ')
-        password = getpass.getpass('Enter your password: ')
-    except EOFError:
-        print('User pressed Ctrl+D to end input.')
-        sys.exit()
-
-    # Read device information from the file
-    with open('device_list.txt', 'r') as f:
-        device_lines = f.read().splitlines()
-
-    # Create a list to store device dictionaries
-    devices = []
-
-    # Parse device information from each line
-    for line in device_lines:
-        if line.strip():  # Skip empty lines
-            hostname = line.strip()
-            devices.append({
-                'hostname': hostname,
-                'username': username,
-                'password': password,
-            })
-
-    # Create a list to store threads
-    threads = []
-
-    # Process each device using multithreading
-    for device in devices:
-        t = threading.Thread(target=process_device, args=(device,))
-        threads.append(t)
-        t.start()
-
-    # Wait for all threads to complete
-    for t in threads:
-        t.join()
-
-    print 'Script execution completed.'
-
-if __name__ == '__main__':
-    main()
+# Close the notepad file
+output_file.close()
