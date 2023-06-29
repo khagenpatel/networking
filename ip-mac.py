@@ -1,61 +1,71 @@
-import paramiko
+from netmiko import ConnectHandler, NetmikoTimeoutException
 import time
 
-def ssh_connect(device, username, password):
-    ssh = paramiko.SSHClient()
-    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh.connect(device, username=username, password=password)
-    return ssh
+# List of switch IP addresses
+switch_ips = ['192.168.1.1', '192.168.1.2', '192.168.1.3']
 
-def execute_commands(ssh, commands, sleep_time=2):
-    shell = ssh.invoke_shell()
-    output = ""
-    for command in commands:
-        shell.send(command + '\n')
-        time.sleep(sleep_time)
-        while True:
-            line = shell.recv(1024)
-            output += line
-            if line == '\n':
-                break
-    return output
+# SSH credentials
+username = 'abcd'
+password = 'defg'
 
-def main():
-    username = 'abcd'
-    password = 'defg'
-    commands = ['term len 0', 'show mac address-table', 'show ip arp']
+# Linux jump server credentials and IP
+jump_server_ip = '192.168.2.1'
+jump_server_username = 'jumpuser'
+jump_server_password = 'jumppassword'
 
-    with open('device_list.txt', 'r') as f:
-        devices = f.read().splitlines()
+# Open a file to save the output
+with open('switch_info.txt', 'w') as file:
 
-    with open('output.txt', 'w') as output_file:
-        for device in devices:
+    # Loop through each switch IP
+    for ip in switch_ips:
+        # SSH device parameters
+        cisco_switch = {
+            'device_type': 'cisco_ios',
+            'ip': ip,
+            'username': username,
+            'password': password,
+        }
+
+        try:
+            # Try to establish SSH connection directly to the switch
+            net_connect = ConnectHandler(**cisco_switch)
+        except NetmikoTimeoutException:
+            # If direct connection fails, use Linux jump server
+            print(f"Direct connection to {ip} failed. Using jump server.")
+            jump_server = {
+                'device_type': 'linux',
+                'ip': jump_server_ip,
+                'username': jump_server_username,
+                'password': jump_server_password,
+            }
             try:
-                ssh = ssh_connect(device, username, password)
-                output = execute_commands(ssh, commands)
+                net_connect = ConnectHandler(**jump_server)
+                # SSH from jump server to switch
+                net_connect.write_channel(f'ssh {username}@{ip}\n')
+                time.sleep(1)
+                net_connect.write_channel(f'{password}\n')
+                time.sleep(1)
+            except NetmikoTimeoutException:
+                # If connection through jump server fails, write error to file and continue
+                file.write(f"Failed to connect to switch {ip} through jump server\n")
+                continue
 
-                # Extracting the hostname from the prompt (assuming prompt ends with '#' or '>')
-                prompt_line = output.splitlines()[0]
-                hostname = prompt_line.split('#')[0] if '#' in prompt_line else prompt_line.split('>')[0]
+        # Execute commands
+        hostname = net_connect.send_command('show run | include hostname')
+        mac_address_table = net_connect.send_command('show mac address-table')
+        arp_table = net_connect.send_command('show ip arp')
 
-                # Extracting the MAC addresses and ARP table from the output
-                mac_start = output.find('mac address-table')
-                arp_start = output.find('ip arp')
-                mac_addresses = output[mac_start:arp_start].strip()
-                arp_table = output[arp_start:].strip()
+        # Write output to file
+        file.write(f'==== {hostname} ====\n')
+        file.write('---- MAC Address Table ----\n')
+        file.write(mac_address_table + '\n')
+        file.write('---- ARP Table ----\n')
+        file.write(arp_table + '\n')
 
-                # Writing the output to the file
-                output_file.write("Hostname: {0}\n".format(hostname))
-                output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
-                output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
-                ssh.close()
-            except paramiko.AuthenticationException:
-                output_file.write("Failed to authenticate to {0}\n".format(device))
-            except paramiko.SSHException as e:
-                output_file.write("SSH error occurred while connecting to {0}: {1}\n".format(device, str(e)))
-            except Exception as e:
-                output_file.write("An error occurred while processing {0}: {1}\n".format(device, str(e)))
-            output_file.flush()
+        # Close SSH connection
+        net_connect.disconnect()
 
-if __name__ == "__main__":
-    main()
+        # Optional sleep to prevent overwhelming the switches
+        time.sleep(1)
+
+print("Switch information saved to switch_info.txt")
