@@ -26,7 +26,7 @@ for device in devices:
         shell = ssh.invoke_shell()
 
         # Send the commands
-        shell.send('show run | include hostname\n')
+        shell.send('term le 0\n')
         shell.send('show mac address-table\n')
         shell.send('show ip arp\n')
         time.sleep(1)  # Wait for the commands to complete
@@ -38,14 +38,19 @@ for device in devices:
 
         print("Output for {0}:\n{1}".format(device, output))  # Print the output for debugging
 
-        # Retrieve the hostname
-        hostname_start = output.find('hostname ')
-        if hostname_start != -1:
-            hostname_end = output.find('\n', hostname_start)
-            if hostname_end != -1:
-                hostname = output[hostname_start + len('hostname '):hostname_end].strip()
-            else:
-                hostname = 'Unknown'
+        # Retrieve the hostname based on the prompt
+        if ">" in output:
+            hostname_start = output.find(">") + 1
+            hostname_end = output.find("\n", hostname_start)
+        elif "#" in output:
+            hostname_start = output.find("#") + 1
+            hostname_end = output.find("\n", hostname_start)
+        else:
+            hostname_start = -1
+            hostname_end = -1
+
+        if hostname_start != -1 and hostname_end != -1:
+            hostname = output[hostname_start:hostname_end].strip()
         else:
             hostname = 'Unknown'
 
@@ -77,8 +82,6 @@ for device in devices:
         output_file.write("Failed to authenticate to {0}\n".format(device))
     except paramiko.SSHException as e:
         output_file.write("SSH error occurred while connecting to {0}: {1}\n".format(device, str(e)))
-    except paramiko.ssh_exception.NoValidConnectionsError:
-        output_file.write("Unable to connect to {0}\n".format(device))
 
 # Close the output file
 output_file.close()
