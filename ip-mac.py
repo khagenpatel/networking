@@ -62,8 +62,7 @@ class DeviceConnector(threading.Thread):
             ssh_client.close()
 
         except Exception as e:
-            print("Error connecting to {}: {}".format(self.ip, str(e)))
-
+            print "Error connecting to {0}: {1}".format(self.ip, str(e))
 
 # Read device IPs from file
 with open("device_list.txt", "r") as file:
@@ -87,4 +86,4 @@ for ip in device_ips:
 for t in threads:
     t.join()
 
-print("Data collection complete")
+print "Data collection complete"
