@@ -12,7 +12,7 @@ class DeviceConnector(threading.Thread):
         self.output_lock = output_lock
     
     def run(self):
-        print "Connecting to {}".format(self.ip)
+        print "Connecting to {0}".format(self.ip)
         try:
             ssh_client = paramiko.SSHClient()
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -25,7 +25,7 @@ class DeviceConnector(threading.Thread):
             output = remote_conn.recv(1000).decode('ascii')
             hostname = output.split("#")[0].strip()
 
-            print "Connected to {} (hostname: {})".format(self.ip, hostname)
+            print "Connected to {0} (hostname: {1})".format(self.ip, hostname)
 
             # Get MAC addresses of physical interfaces
             remote_conn.send('show mac address-table\n')
@@ -40,7 +40,7 @@ class DeviceConnector(threading.Thread):
             arp_table = remote_conn.recv(5000).decode()
 
             # Regex to match physical interface patterns
-            interface_pattern = re.compile(r'^[0-9]+(/[0-9]+)+$')
+            interface_pattern = re.compile(r'^\d+(/\d+)+$')
 
             # Parse the information
             for line in mac_address_output.split('\n'):
@@ -61,7 +61,9 @@ class DeviceConnector(threading.Thread):
                         with open('output.csv', 'a') as file:
                             writer = csv.writer(file)
                             writer.writerow([hostname, self.ip, interface, mac_address, ip_address_from_arp])
-                            print "Data written for {}".format(self.ip)
+                            print "Data written for {0}".format(self.ip)
+                else:
+                    print "No matching interfaces found on {0}".format(self.ip)
             
             ssh_client.close()
 
@@ -85,15 +87,4 @@ with open('output.csv', 'w') as file:
     writer.writerow(['hostname', 'IP address of the switch', 'interface', 'mac address', 'ip address from arp'])
     print "Created output.csv file with headers"
 
-# Create and start threads
-threads = []
-for ip in device_ips:
-    connector = DeviceConnector(ip.strip(), username, password, output_lock)
-    threads.append(connector)
-    connector.start()
-
-# Wait for all threads to complete
-for t in threads:
-    t.join()
-
-print "Data collection complete"
+#
