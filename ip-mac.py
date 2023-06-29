@@ -37,9 +37,8 @@ class DeviceConnector(threading.Thread):
             arp_table = remote_conn.recv(5000).decode()
 
             # Regex to match physical interface patterns
-            # Regex to match physical interface patterns
             interface_pattern = re.compile(r'^[0-9]+(/[0-9]+)+$')
-            
+
             # Parse the information
             for line in mac_address_output.split('\n'):
                 parts = line.split()
@@ -56,15 +55,14 @@ class DeviceConnector(threading.Thread):
                     
                     # Output the information
                     with self.output_lock:
-                        with open('output.csv', mode='a') as file:
+                        with open('output.csv', 'a') as file:
                             writer = csv.writer(file)
                             writer.writerow([hostname, self.ip, interface, mac_address, ip_address_from_arp])
-
             
             ssh_client.close()
 
         except Exception as e:
-            print(f"Error connecting to {self.ip}: {str(e)}")
+            print("Error connecting to {}: {}".format(self.ip, str(e)))
 
 
 # Read device IPs from file
