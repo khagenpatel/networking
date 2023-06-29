@@ -22,27 +22,32 @@ for device in devices:
         # Connect to the device
         ssh.connect(device, username=username, password=password)
 
+        # Start an interactive shell
+        shell = ssh.invoke_shell()
+
+        # Send the commands
+        shell.send('show run | include hostname\n')
+        shell.send('show mac address-table\n')
+        shell.send('show ip arp\n')
+        time.sleep(1)  # Wait for the commands to complete
+
+        # Read the output
+        output = ''
+        while shell.recv_ready():
+            output += shell.recv(1024)
+
         # Retrieve the hostname
-        stdin, stdout, stderr = ssh.exec_command('show run | include hostname')
-        hostname = stdout.read().strip().split(' ')[1]
+        hostname = output.split('hostname ')[1].strip().split('\n')[0]
 
         output_file.write("Hostname of {0}: {1}\n".format(device, hostname))
 
-        # Show MAC addresses
-        stdin, stdout, stderr = ssh.exec_command('show mac address-table', bufsize=-1)
-        time.sleep(1)  # Wait for the command to complete
-        while not stdout.channel.exit_status_ready():
-            time.sleep(1)
-        mac_addresses = stdout.read()
+        # Retrieve the MAC addresses
+        mac_addresses = output.split('mac address-table\n', 1)[1].split('Type:')[0].strip()
 
         output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
 
-        # Show IP ARP table
-        stdin, stdout, stderr = ssh.exec_command('show ip arp', bufsize=-1)
-        time.sleep(1)  # Wait for the command to complete
-        while not stdout.channel.exit_status_ready():
-            time.sleep(1)
-        arp_table = stdout.read()
+        # Retrieve the IP ARP table
+        arp_table = output.split('ip arp\n', 1)[1].strip()
 
         output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
 
@@ -53,6 +58,8 @@ for device in devices:
         output_file.write("Failed to authenticate to {0}\n".format(device))
     except paramiko.SSHException as e:
         output_file.write("SSH error occurred while connecting to {0}: {1}\n".format(device, str(e)))
+    except paramiko.ssh_exception.NoValidConnectionsError:
+        output_file.write("Unable to connect to {0}\n".format(device))
 
 # Close the output file
 output_file.close()
