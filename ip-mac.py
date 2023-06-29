@@ -31,9 +31,8 @@ def main():
                 ssh = ssh_connect(device, username, password)
                 output = execute_commands(ssh, commands)
 
-                # Extracting the hostname from the prompt (assuming prompt ends with '#' or '>')
-                prompt_line = output.splitlines()[0]
-                hostname = prompt_line.split('#')[0] if '#' in prompt_line else prompt_line.split('>')[0]
+                # Extracting the hostname from the prompt
+                hostname = ssh.gethostname()
 
                 # Extracting the MAC addresses and ARP table from the output
                 mac_start = output.find('mac address-table')
