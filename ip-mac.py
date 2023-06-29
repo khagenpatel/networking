@@ -36,18 +36,37 @@ for device in devices:
         while shell.recv_ready():
             output += shell.recv(1024)
 
+        print("Output for {0}:\n{1}".format(device, output))  # Print the output for debugging
+
         # Retrieve the hostname
-        hostname = output.split('hostname ')[1].strip().split('\n')[0]
+        hostname_start = output.find('hostname ')
+        if hostname_start != -1:
+            hostname_end = output.find('\n', hostname_start)
+            if hostname_end != -1:
+                hostname = output[hostname_start + len('hostname '):hostname_end].strip()
+            else:
+                hostname = 'Unknown'
+        else:
+            hostname = 'Unknown'
 
         output_file.write("Hostname of {0}: {1}\n".format(device, hostname))
 
         # Retrieve the MAC addresses
-        mac_addresses = output.split('mac address-table\n', 1)[1].split('Type:')[0].strip()
+        mac_start = output.find('mac address-table')
+        mac_end = output.find('Type:', mac_start)
+        if mac_start != -1 and mac_end != -1:
+            mac_addresses = output[mac_start:mac_end].strip()
+        else:
+            mac_addresses = 'Unknown'
 
         output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
 
         # Retrieve the IP ARP table
-        arp_table = output.split('ip arp\n', 1)[1].strip()
+        arp_start = output.find('ip arp')
+        if arp_start != -1:
+            arp_table = output[arp_start + len('ip arp'):].strip()
+        else:
+            arp_table = 'Unknown'
 
         output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
 
