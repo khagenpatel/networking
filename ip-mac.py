@@ -75,11 +75,11 @@ def main():
     # Parse device information from each line
     for line in device_lines:
         if line.strip():  # Skip empty lines
-            hostname, _ = line.split(',')
+            hostname = line.strip()
             username = raw_input('Enter username for {}: '.format(hostname))
             password = getpass.getpass('Enter password for {}: '.format(hostname))
             devices.append({
-                'hostname': hostname.strip(),
+                'hostname': hostname,
                 'username': username.strip(),
                 'password': password.strip(),
             })
