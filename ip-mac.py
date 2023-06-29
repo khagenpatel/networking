@@ -28,12 +28,12 @@ for ip_address in ip_addresses:
             output = client.recv(65535).decode('utf-8')
 
             # Write the output to the notepad file
-            output_file.write(f'\nDevice: {ip_address}\n')
-            output_file.write(f'Command: {command}\n')
+            output_file.write('\nDevice: {}\n'.format(ip_address))
+            output_file.write('Command: {}\n'.format(command))
             output_file.write(output)
 
     except Exception as e:
-        print(f'Error connecting to {ip_address}: {str(e)}')
+        print('Error connecting to {}: {}'.format(ip_address, str(e)))
 
     finally:
         # Close the SSH connection
