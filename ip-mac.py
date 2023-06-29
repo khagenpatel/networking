@@ -31,7 +31,7 @@ def get_device_info(device):
         elif '#' in prompt:
             device_type = "cisco_nxos"
         else:
-            device_type = "unknown"
+            device_type = ""
 
         # Run show commands
         commands = [
@@ -49,16 +49,19 @@ def get_device_info(device):
             device_info += output
             device_info += '\n'
 
+        if device_type:
+            print 'Retrieved information from {}. Device Type: {}'.format(hostname, device_type)
+
         save_device_info(device_info)
 
         client.close()
-
-        print 'Retrieved information from {}. Device Type: {}'.format(hostname, device_type)
 
     except paramiko.AuthenticationException:
         print 'Authentication failed for {}.'.format(hostname)
     except paramiko.SSHException as e:
         print 'Error occurred while connecting to {}: {}'.format(hostname, str(e))
+
+
 
 def process_device(device):
     """Process a single device."""
