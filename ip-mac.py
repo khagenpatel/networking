@@ -1,63 +1,49 @@
 import paramiko
 import time
 
-# Define the SSH credentials
-username = 'abcd'
-password = 'defg'
+def ssh_connect(device, username, password):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(device, username=username, password=password)
+    return ssh
 
-# Read the device list from a file
-with open('device_list.txt', 'r') as f:
-    devices = f.read().splitlines()
+def execute_commands(ssh, commands, sleep_time=2):
+    shell = ssh.invoke_shell()
+    output = ""
+    for command in commands:
+        shell.send(command + '\n')
+        time.sleep(sleep_time)
+    while shell.recv_ready():
+        output += shell.recv(1024).decode()
+    return output
 
-# Create a file to save the output
-output_file = open('output.txt', 'w')
+def main():
+    username = 'abcd'
+    password = 'defg'
+    commands = ['term len 0', 'show mac address-table', 'show ip arp']
 
-# Connect to each device and execute commands
-for device in devices:
-    try:
-        # Create an SSH client
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    with open('device_list.txt', 'r') as f:
+        devices = f.read().splitlines()
 
-        # Connect to the device
-        ssh.connect(device, username=username, password=password)
+    with open('output.txt', 'w') as output_file:
+        for device in devices:
+            try:
+                ssh = ssh_connect(device, username, password)
+                output = execute_commands(ssh, commands)
+                hostname = output.splitlines()[0].strip()
+                mac_addresses = output[output.find('mac address-table'):output.find('Type:')].strip()
+                arp_table = output[output.find('ip arp'):].strip()
+                output_file.write(f"Hostname of {device}: {hostname}\n")
+                output_file.write(f"MAC addresses on {device}:\n{mac_addresses}\n")
+                output_file.write(f"IP ARP table on {device}:\n{arp_table}\n")
+                ssh.close()
+            except paramiko.AuthenticationException:
+                output_file.write(f"Failed to authenticate to {device}\n")
+            except paramiko.SSHException as e:
+                output_file.write(f"SSH error occurred while connecting to {device}: {str(e)}\n")
+            except Exception as e:
+                output_file.write(f"An error occurred while processing {device}: {str(e)}\n")
+            output_file.flush()
 
-        # Start an interactive shell
-        shell = ssh.invoke_shell()
-
-        # Send the commands
-        shell.send('term le 0\n')
-        shell.send('show mac address-table\n')
-        shell.send('show ip arp\n')
-        time.sleep(1)  # Wait for the commands to complete
-
-        # Read the output
-        output = ''
-        while shell.recv_ready():
-            output += shell.recv(1024)
-
-        # Retrieve the hostname based on the prompt
-        hostname = output.splitlines()[0].strip()
-
-        # Retrieve the MAC addresses
-        mac_addresses = output[output.find('mac address-table'):output.find('Type:')].strip()
-
-        # Retrieve the IP ARP table
-        arp_table = output[output.find('ip arp'):].strip()
-
-        # Write the output to the file
-        output_file.write("Hostname of {0}: {1}\n".format(device, hostname))
-        output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
-        output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
-
-        # Close the SSH connection
-        ssh.close()
-
-    except paramiko.AuthenticationException:
-        output_file.write("Failed to authenticate to {0}\n".format(device))
-    except paramiko.SSHException as e:
-        output_file.write("SSH error occurred while connecting to {0}: {1}\n".format(device, str(e)))
-
-
-# Close the output file
-output_file.close()
+if __name__ == "__main__":
+    main()
