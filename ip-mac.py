@@ -12,6 +12,7 @@ class DeviceConnector(threading.Thread):
         self.output_lock = output_lock
     
     def run(self):
+        print "Connecting to {}".format(self.ip)
         try:
             ssh_client = paramiko.SSHClient()
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -23,6 +24,8 @@ class DeviceConnector(threading.Thread):
             # Get hostname from command prompt
             output = remote_conn.recv(1000).decode('ascii')
             hostname = output.split("#")[0].strip()
+
+            print "Connected to {} (hostname: {})".format(self.ip, hostname)
 
             # Get MAC addresses of physical interfaces
             remote_conn.send('show mac address-table\n')
@@ -58,6 +61,7 @@ class DeviceConnector(threading.Thread):
                         with open('output.csv', 'a') as file:
                             writer = csv.writer(file)
                             writer.writerow([hostname, self.ip, interface, mac_address, ip_address_from_arp])
+                            print "Data written for {}".format(self.ip)
             
             ssh_client.close()
 
@@ -74,6 +78,12 @@ password = 'your_password'
 
 # Lock to synchronize output to file
 output_lock = threading.Lock()
+
+# Create the output.csv file with headers
+with open('output.csv', 'w') as file:
+    writer = csv.writer(file)
+    writer.writerow(['hostname', 'IP address of the switch', 'interface', 'mac address', 'ip address from arp'])
+    print "Created output.csv file with headers"
 
 # Create and start threads
 threads = []
