@@ -13,8 +13,11 @@ def execute_commands(ssh, commands, sleep_time=2):
     for command in commands:
         shell.send(command + '\n')
         time.sleep(sleep_time)
-        while shell.recv_ready():
-            output += shell.recv(1024)
+        while True:
+            line = shell.recv(1024)
+            output += line
+            if line == '\n':
+                break
     return output
 
 def main():
@@ -31,8 +34,9 @@ def main():
                 ssh = ssh_connect(device, username, password)
                 output = execute_commands(ssh, commands)
 
-                # Extracting the hostname from the prompt
-                hostname = ssh.gethostname()
+                # Extracting the hostname from the prompt (assuming prompt ends with '#' or '>')
+                prompt_line = output.splitlines()[0]
+                hostname = prompt_line.split('#')[0] if '#' in prompt_line else prompt_line.split('>')[0]
 
                 # Extracting the MAC addresses and ARP table from the output
                 mac_start = output.find('mac address-table')
@@ -40,6 +44,7 @@ def main():
                 mac_addresses = output[mac_start:arp_start].strip()
                 arp_table = output[arp_start:].strip()
 
+                # Writing the output to the file
                 output_file.write("Hostname: {0}\n".format(hostname))
                 output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
                 output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
