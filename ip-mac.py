@@ -40,12 +40,12 @@ def get_device_info(device):
             'show ip arp',
         ]
 
-        device_info = f'Device: {hostname}\n\n'
+        device_info = 'Device: {}\n\n'.format(hostname)
 
         for command in commands:
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read().decode('utf-8')
-            device_info += f'Command: {command}\n'
+            device_info += 'Command: {}\n'.format(command)
             device_info += output
             device_info += '\n'
 
@@ -53,12 +53,12 @@ def get_device_info(device):
 
         client.close()
 
-        print(f'Retrieved information from {hostname}. Device Type: {device_type}')
+        print('Retrieved information from {}. Device Type: {}'.format(hostname, device_type))
 
     except paramiko.AuthenticationException:
-        print(f'Authentication failed for {hostname}.')
+        print('Authentication failed for {}.'.format(hostname))
     except paramiko.SSHException as e:
-        print(f'Error occurred while connecting to {hostname}: {str(e)}')
+        print('Error occurred while connecting to {}: {}'.format(hostname, str(e)))
 
 def process_device(device):
     """Process a single device."""
@@ -76,8 +76,8 @@ def main():
     for line in device_lines:
         if line.strip():  # Skip empty lines
             hostname, _ = line.split(',')
-            username = input(f"Enter username for {hostname}: ")
-            password = getpass.getpass(f"Enter password for {hostname}: ")
+            username = raw_input('Enter username for {}: '.format(hostname))
+            password = getpass.getpass('Enter password for {}: '.format(hostname))
             devices.append({
                 'hostname': hostname.strip(),
                 'username': username.strip(),
