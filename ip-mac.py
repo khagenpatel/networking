@@ -31,9 +31,14 @@ def main():
                 ssh = ssh_connect(device, username, password)
                 output = execute_commands(ssh, commands)
                 hostname = output.splitlines()[0].strip()
-                mac_addresses = output[output.find('mac address-table'):output.find('Type:')].strip()
-                arp_table = output[output.find('ip arp'):].strip()
-                output_file.write("Hostname of {0}: {1}\n".format(device, hostname))
+                
+                # Extracting the MAC addresses and ARP table from the output
+                mac_start = output.find('mac address-table')
+                arp_start = output.find('ip arp')
+                mac_addresses = output[mac_start:arp_start].strip()
+                arp_table = output[arp_start:].strip()
+                
+                output_file.write(hostname)
                 output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
                 output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
                 ssh.close()
