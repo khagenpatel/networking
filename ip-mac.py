@@ -13,7 +13,7 @@ class DeviceConnector(threading.Thread):
         self.output_lock = output_lock
     
     def run(self):
-        print "Connecting to {0}".format(self.ip)
+        print "Connecting to", self.ip
         try:
             ssh_client = paramiko.SSHClient()
             ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -26,56 +26,60 @@ class DeviceConnector(threading.Thread):
             remote_conn.send("enable\n")
             while not remote_conn.recv_ready():
                 pass
-            remote_conn.send("{0}\n".format(self.enable_password))
+            remote_conn.send("{}\n".format(self.enable_password))
 
             # Get hostname from command prompt
-            output = remote_conn.recv(1000).decode('ascii')
+            output = remote_conn.recv(1000)
             hostname = output.split("#")[0].strip()
 
-            print "Connected to {0} (hostname: {1})".format(self.ip, hostname)
+            print "Connected to", self.ip, "(hostname:", hostname, ")"
 
             # Get MAC addresses of physical interfaces
             remote_conn.send('show mac address-table\n')
             while not remote_conn.recv_ready():
                 pass
-            mac_address_output = remote_conn.recv(5000).decode()
+            mac_address_output = remote_conn.recv(5000)
 
             # Get ARP table
             remote_conn.send('show ip arp\n')
             while not remote_conn.recv_ready():
                 pass
-            arp_table = remote_conn.recv(5000).decode()
+            arp_table = remote_conn.recv(5000)
 
             # Regex to match physical interface patterns
-            interface_pattern = re.compile(r'^\d+(/\d+)+$')
+            interface_pattern = re.compile(r'\D+\d+((/\d+)+(\.\d+)?)')
 
             # Parse the information
             for line in mac_address_output.split('\n'):
                 parts = line.split()
-                if len(parts) > 4 and interface_pattern.match(parts[3]):
+                if len(parts) > 4:
                     interface = parts[3]
                     mac_address = parts[1]
+                    print "Debug: Processing line:", line  # Debug print statement
                     
-                    # Find IP address from ARP table
-                    ip_address_from_arp = "Not Found"
-                    for arp_line in arp_table.split('\n'):
-                        if mac_address in arp_line:
-                            ip_address_from_arp = arp_line.split()[1]
-                            break
-                    
-                    # Output the information
-                    with self.output_lock:
-                        with open('output.csv', 'a') as file:
-                            writer = csv.writer(file)
-                            writer.writerow([hostname, self.ip, interface, mac_address, ip_address_from_arp])
-                            print "Data written for {0}".format(self.ip)
+                    if interface_pattern.match(interface):
+                        # Find IP address from ARP table
+                        ip_address_from_arp = "Not Found"
+                        for arp_line in arp_table.split('\n'):
+                            if mac_address in arp_line:
+                                ip_address_from_arp = arp_line.split()[1]
+                                break
+                        
+                        # Output the information
+                        with self.output_lock:
+                            with open('output.csv', 'a') as file:
+                                writer = csv.writer(file)
+                                writer.writerow([hostname, self.ip, interface, mac_address, ip_address_from_arp])
+                                print "Data written for", self.ip
+                    else:
+                        print "Interface pattern not matched:", interface
                 else:
-                    print "No matching interfaces found on {0}".format(self.ip)
+                    print "Line does not have enough parts:", line
             
             ssh_client.close()
 
         except Exception as e:
-            print "Error connecting to {0}: {1}".format(self.ip, str(e))
+            print "Error connecting to", self.ip, ":", str(e)
 
 # Read device IPs from file
 with open("device_list.txt", "r") as file:
@@ -98,7 +102,7 @@ with open('output.csv', 'w') as file:
 # Create and start threads
 threads = []
 for ip in device_ips:
-    connector = DeviceConnector(ip.strip(), username, password, output_lock)
+    connector = DeviceConnector(ip.strip(), username, password, enable_password, output_lock)
     threads.append(connector)
     connector.start()
 
