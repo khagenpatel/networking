@@ -1,8 +1,9 @@
 from netmiko import ConnectHandler, NetmikoTimeoutException
 import time
 
-# List of switch IP addresses
-switch_ips = ['192.168.1.1', '192.168.1.2', '192.168.1.3']
+# Read switch IP addresses from file
+with open('device_list.txt', 'r') as file:
+    switch_ips = [line.strip() for line in file]
 
 # SSH credentials
 username = 'abcd'
