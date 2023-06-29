@@ -14,7 +14,7 @@ def execute_commands(ssh, commands, sleep_time=2):
         shell.send(command + '\n')
         time.sleep(sleep_time)
     while shell.recv_ready():
-        output += shell.recv(1024).decode()
+        output += shell.recv(1024)
     return output
 
 def main():
@@ -33,16 +33,16 @@ def main():
                 hostname = output.splitlines()[0].strip()
                 mac_addresses = output[output.find('mac address-table'):output.find('Type:')].strip()
                 arp_table = output[output.find('ip arp'):].strip()
-                output_file.write(f"Hostname of {device}: {hostname}\n")
-                output_file.write(f"MAC addresses on {device}:\n{mac_addresses}\n")
-                output_file.write(f"IP ARP table on {device}:\n{arp_table}\n")
+                output_file.write("Hostname of {0}: {1}\n".format(device, hostname))
+                output_file.write("MAC addresses on {0}:\n{1}\n".format(device, mac_addresses))
+                output_file.write("IP ARP table on {0}:\n{1}\n".format(device, arp_table))
                 ssh.close()
             except paramiko.AuthenticationException:
-                output_file.write(f"Failed to authenticate to {device}\n")
+                output_file.write("Failed to authenticate to {0}\n".format(device))
             except paramiko.SSHException as e:
-                output_file.write(f"SSH error occurred while connecting to {device}: {str(e)}\n")
+                output_file.write("SSH error occurred while connecting to {0}: {1}\n".format(device, str(e)))
             except Exception as e:
-                output_file.write(f"An error occurred while processing {device}: {str(e)}\n")
+                output_file.write("An error occurred while processing {0}: {1}\n".format(device, str(e)))
             output_file.flush()
 
 if __name__ == "__main__":
