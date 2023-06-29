@@ -1,42 +1,53 @@
 import paramiko
 
-# Read the device IP addresses from device_list.txt
-with open('device_list.txt', 'r') as file:
-    ip_addresses = file.read().splitlines()
-
-# Define the common credentials
+# Define the SSH credentials
 username = 'abcd'
 password = 'defg'
 
-# Open the notepad file in append mode
-output_file = open('output.txt', 'a')
+# Read the device list from a file
+with open('device_list.txt', 'r') as f:
+    devices = f.read().splitlines()
 
-for ip_address in ip_addresses:
-    # Create a new SSH client
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+# Create a file to save the output
+output_file = open('output.txt', 'w')
 
+# Connect to each device and execute commands
+for device in devices:
     try:
+        # Create an SSH client
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
         # Connect to the device
-        client.connect(hostname=ip_address, username=username, password=password)
+        ssh.connect(device, username=username, password=password)
 
-        # Send the necessary commands and retrieve the output
-        commands = ['show hostname', 'show mac address-table', 'show ip arp']
-        for command in commands:
-            stdin, stdout, stderr = client.exec_command(command)
-            output = stdout.read().decode('utf-8')
+        # Retrieve the hostname
+        stdin, stdout, stderr = ssh.exec_command('show run | include hostname')
+        hostname = stdout.read().strip().split(' ')[1]
 
-            # Write the output to the notepad file
-            output_file.write('\nDevice: %s\n' % ip_address)
-            output_file.write('Command: %s\n' % command)
-            output_file.write(output)
+        output_file.write("Hostname of {}: {}\n".format(device, hostname))
 
-    except Exception as e:
-        print 'Error connecting to %s: %s' % (ip_address, str(e))
+        # Show MAC addresses
+        stdin, stdout, stderr = ssh.exec_command('show mac address-table')
+        mac_addresses = stdout.read()
 
-    finally:
+        output_file.write("MAC addresses on {}:\n{}\n".format(device, mac_addresses))
+
+        # Show IP ARP table
+        stdin, stdout, stderr = ssh.exec_command('show ip arp')
+        arp_table = stdout.read()
+
+        output_file.write("IP ARP table on {}:\n{}\n".format(device, arp_table))
+
         # Close the SSH connection
-        client.close()
+        ssh.close()
 
-# Close the notepad file
+    except paramiko.AuthenticationException:
+        output_file.write("Failed to authenticate to {}\n".format(device))
+    except paramiko.SSHException as e:
+        output_file.write("SSH error occurred while connecting to {}: {}\n".format(device, str(e)))
+    except paramiko.ssh_exception.NoValidConnectionsError:
+        output_file.write("Unable to connect to {}\n".format(device))
+
+# Close the output file
 output_file.close()
