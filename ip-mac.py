@@ -40,12 +40,12 @@ def get_device_info(device):
             'show ip arp',
         ]
 
-        device_info = 'Device: %s\n\n' % hostname
+        device_info = 'Device: {}\n\n'.format(hostname)
 
         for command in commands:
             stdin, stdout, stderr = client.exec_command(command)
             output = stdout.read().decode('utf-8')
-            device_info += 'Command: %s\n' % command
+            device_info += 'Command: {}\n'.format(command)
             device_info += output
             device_info += '\n'
 
@@ -53,21 +53,20 @@ def get_device_info(device):
 
         client.close()
 
-        print 'Retrieved information from %s. Device Type: %s' % (hostname, device_type)
+        print('Retrieved information from {}. Device Type: {}'.format(hostname, device_type))
 
     except paramiko.AuthenticationException:
-        print 'Authentication failed for %s.' % hostname
+        print('Authentication failed for {}.'.format(hostname))
     except paramiko.SSHException as e:
-        print 'Error occurred while connecting to %s: %s' % (hostname, str(e))
+        print('Error occurred while connecting to {}: {}'.format(hostname, str(e)))
 
 def process_device(device):
     """Process a single device."""
     get_device_info(device)
 
 def main():
-    # Specify the username and password
+    # Specify the username
     username = 'your_username'
-    password = 'your_password'
 
     # Read device information from the file
     with open('device_list.txt', 'r') as f:
@@ -80,10 +79,11 @@ def main():
     for line in device_lines:
         if line.strip():  # Skip empty lines
             hostname = line.strip()
+            password = getpass.getpass('Enter password for {}: '.format(hostname))
             devices.append({
                 'hostname': hostname,
                 'username': username,
-                'password': password,
+                'password': password.strip(),
             })
 
     # Create a list to store threads
@@ -99,7 +99,7 @@ def main():
     for t in threads:
         t.join()
 
-    print 'Script execution completed.'
+    print('Script execution completed.')
 
 if __name__ == '__main__':
     main()
