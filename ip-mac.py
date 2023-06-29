@@ -4,11 +4,12 @@ import csv
 import re
 
 class DeviceConnector(threading.Thread):
-    def __init__(self, ip, username, password, output_lock):
+    def __init__(self, ip, username, password, enable_password, output_lock):
         threading.Thread.__init__(self)
         self.ip = ip
         self.username = username
         self.password = password
+        self.enable_password = enable_password
         self.output_lock = output_lock
     
     def run(self):
@@ -21,6 +22,12 @@ class DeviceConnector(threading.Thread):
             # Create an interactive shell session
             remote_conn = ssh_client.invoke_shell()
             
+            # Send the enable command
+            remote_conn.send("enable\n")
+            while not remote_conn.recv_ready():
+                pass
+            remote_conn.send("{0}\n".format(self.enable_password))
+
             # Get hostname from command prompt
             output = remote_conn.recv(1000).decode('ascii')
             hostname = output.split("#")[0].strip()
@@ -77,6 +84,7 @@ with open("device_list.txt", "r") as file:
 # Define credentials
 username = 'your_username'
 password = 'your_password'
+enable_password = 'your_enable_password'
 
 # Lock to synchronize output to file
 output_lock = threading.Lock()
@@ -87,4 +95,15 @@ with open('output.csv', 'w') as file:
     writer.writerow(['hostname', 'IP address of the switch', 'interface', 'mac address', 'ip address from arp'])
     print "Created output.csv file with headers"
 
-#
+# Create and start threads
+threads = []
+for ip in device_ips:
+    connector = DeviceConnector(ip.strip(), username, password, output_lock)
+    threads.append(connector)
+    connector.start()
+
+# Wait for all threads to complete
+for t in threads:
+    t.join()
+
+print "Data collection complete"
