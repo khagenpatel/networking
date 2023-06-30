@@ -1,15 +1,18 @@
 import re
 import csv
 
+
 def convert_mac_format(mac):
     # Remove dots and convert to lower case
     mac = mac.replace('.', '').lower()
     # Insert colons
     return ':'.join(mac[i:i + 2] for i in range(0, len(mac), 2))
 
+
 # Regular expressions for parsing the MAC address table entries
 hostname_regex = re.compile(r'==== (.+?)[#>]? ====')
-mac_entry_regex = re.compile(r'\s*\S+\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+(?:\S+\s+)*([\w/]+)')
+mac_entry_regex_ios = re.compile(r'\s*\S+\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+(?:\S+\s+)*([\w/]+)')
+mac_entry_regex_nexus = re.compile(r'\s*\*\s+\S+\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+\S+\s+\S+\s+\S+\s+([\w/]+)')
 
 # Open CSV file to save the output
 with open('mac_addresses.csv', 'w', newline='') as csvfile:
@@ -27,8 +30,12 @@ with open('mac_addresses.csv', 'w', newline='') as csvfile:
             if hostname_match:
                 hostname = hostname_match.group(1).strip()
 
-            # Check for MAC address entry
-            mac_entry_match = mac_entry_regex.match(line)
+            # Check for MAC address entry (IOS)
+            mac_entry_match = mac_entry_regex_ios.match(line)
+            if not mac_entry_match:
+                # Check for MAC address entry (Nexus)
+                mac_entry_match = mac_entry_regex_nexus.match(line)
+
             if mac_entry_match and hostname:
                 mac_address, interface = mac_entry_match.groups()
                 # Convert the MAC address format
