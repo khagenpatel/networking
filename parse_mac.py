@@ -8,7 +8,7 @@ def convert_mac_format(mac):
     return ':'.join(mac[i:i + 2] for i in range(0, len(mac), 2))
 
 # Regular expressions for parsing the MAC address table entries
-hostname_regex = re.compile(r'==== (.+?) ====')
+hostname_regex = re.compile(r'==== (.+?)[#>]? ====')
 mac_entry_regex = re.compile(r'\s*\S+\s+([0-9a-fA-F]{4}\.[0-9a-fA-F]{4}\.[0-9a-fA-F]{4})\s+\S+\s+(?:\S+\s+)*([\w/]+)')
 
 # Open CSV file to save the output
