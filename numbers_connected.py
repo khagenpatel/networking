@@ -1,5 +1,5 @@
 import csv
-import concurrent.futures
+import socket
 from sshtunnel import SSHTunnelForwarder
 from netmiko import ConnectHandler, NetMikoTimeoutException
 
@@ -25,9 +25,11 @@ def count_output_lines(device):
         remote_bind_address=(device, 22)
     ) as tunnel:
         try:
+            sock = socket.socket()
+            sock.connect(('127.0.0.1', tunnel.local_bind_port))
             connection = ConnectHandler(
                 device_type="cisco_ios",
-                ip='127.0.0.1',
+                host='127.0.0.1',
                 port=tunnel.local_bind_port,
                 username=username,
                 password=password,
@@ -36,13 +38,20 @@ def count_output_lines(device):
             output1 = connection.send_command("show ip int br | i up")
             output2 = connection.send_command("show interface status | i connected")
             connection.disconnect()
+            sock.close()
             return device, len(output1.split("\n")), len(output2.split("\n"))
         except NetMikoTimeoutException:
             return device, "Error", "Error connecting via jump server"
+        except socket.error as e:
+            return device, "Error", f"Socket error: {e}"
 
-# Use a thread pool to send commands to all devices concurrently, but limit to 5 concurrent tasks
-with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-    results = list(executor.map(count_output_lines, devices))
+# List to hold the results
+results = []
+
+# Loop through each device
+for device in devices:
+    result = count_output_lines(device)
+    results.append(result)
 
 # Write the results to a CSV file
 with open("output.csv", "w", newline="") as file:
