@@ -5,24 +5,32 @@ from netmiko import ConnectHandler, SSHException, NetmikoTimeoutException
 def get_device_info(device_ip, username, password):
     try:
         # SSH into the device
-        device = ConnectHandler(device_type='arista_eos', ip=device_ip, username=username, password=password)
+        device = ConnectHandler(
+            device_type='arista_eos', 
+            ip=device_ip, 
+            username=username, 
+            password=password, 
+            global_delay_factor=2
+        )
 
         # Run command
-        output = device.send_command("show mac address | i /", use_textfsm=True)
+        output = device.send_command("show mac add | i Et")
 
         # Parse the output to extract hostname, interface, and MAC address
         lines = output.split("\n")
+        info_list = []
         for line in lines:
-            if '/' in line:
+            if 'Et' in line:
                 parts = line.split()
                 hostname = device.find_prompt()[:-1] # Get hostname from prompt
-                mac_address = parts[0]
-                interface = parts[-1]
-                return (hostname, device_ip, interface, mac_address)
+                vlan = parts[0]
+                mac_address = parts[1]
+                interface = parts[3]
+                info_list.append((hostname, device_ip, vlan, interface, mac_address))
+        return info_list
     except (SSHException, NetmikoTimeoutException) as e:
         print(f"Failed to connect to {device_ip} due to {str(e)}")
-    
-    return (None, None, None, None)
+        return []
 
 def main():
     username = 'your-username'
@@ -35,7 +43,7 @@ def main():
     # Prepare CSV file
     with open('output.csv', 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(["Hostname", "IP", "Interface", "MAC Address"])
+        writer.writerow(["Hostname", "IP", "VLAN", "Interface", "MAC Address"])
 
         # For each IP address, get the device info and write it to the CSV
         # Using concurrent futures to run get_device_info() in parallel for each IP
@@ -44,11 +52,11 @@ def main():
             for future in concurrent.futures.as_completed(future_to_ip):
                 ip = future_to_ip[future]
                 try:
-                    info = future.result()
+                    info_list = future.result()
+                    for info in info_list:
+                        writer.writerow(info)
                 except Exception as e:
                     print(f"An error occurred with {ip}: {e}")
-                else:
-                    writer.writerow(info)
 
 if __name__ == "__main__":
     main()
