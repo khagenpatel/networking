@@ -5,12 +5,19 @@ import re
 csvfile1 = pd.read_csv('csvfile1.csv')
 csvfile2 = pd.read_csv('csvfile2.csv')
 
-# Load OUI file
-with open('oui.txt', 'r') as f:
-    oui_data = f.readlines()
-
-# Create dictionary from OUI file
-oui_dict = {line.split(',')[0].strip().lower(): line.split(',')[1].strip() for line in oui_data}
+# Load OUI file with utf-8 encoding and create dictionary
+oui_dict = {}
+with open('oui.txt', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+    for i in range(len(lines)):
+        if "(hex)" in lines[i]:
+            oui_hex = lines[i].split()[0].replace('-', '').lower()
+            vendor = lines[i].split('\t')[1]
+            oui_dict[oui_hex] = vendor
+        elif "(base 16)" in lines[i]:
+            oui_base16 = lines[i].split()[0].lower()
+            vendor = lines[i].split('\t')[1]
+            oui_dict[oui_base16] = vendor
 
 # Rename the columns for easy access
 csvfile1.columns = ['Hostname', 'IP', 'VLAN', 'Interface', 'MAC_Address']
