@@ -1,60 +1,50 @@
 import csv
-import socket
-from sshtunnel import SSHTunnelForwarder
-from netmiko import ConnectHandler, NetMikoTimeoutException
+from netmiko import ConnectHandler
+from netmiko.ssh_exception import NetmikoTimeoutException, NetmikoAuthenticationException
+import textfsm
 
-# Read the list of devices from the text file
-with open("devices.txt", "r") as file:
-    devices = [line.strip() for line in file]
+# Load device info from CSV
+def load_devices(file_name):
+    devices = []
+    with open(file_name, 'r') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            devices.append(row)
+    return devices
 
-# SSH credentials
-username = "your_username"
-password = "your_password"
+# Get CDP neighbor info
+def get_cdp_neighbors(device):
+    try:
+        connection = ConnectHandler(**device)
+        output = connection.send_command("show cdp neighbors")
+        connection.disconnect()
 
-# Jump server details
-jump_server_ip = "jump_server_ip"
-jump_server_username = "jump_server_username"
-jump_server_password = "jump_server_password"
+        # Parse the output using ntc-template
+        with open("ntc-templates/templates/cisco_ios_show_cdp_neighbors.textfsm") as template:
+            fsm = textfsm.TextFSM(template)
+            parsed_output = fsm.ParseText(output)
+            return parsed_output
 
-# Function to send commands to a device and count output lines
-def count_output_lines(device):
-    with SSHTunnelForwarder(
-        jump_server_ip,
-        ssh_username=jump_server_username,
-        ssh_password=jump_server_password,
-        remote_bind_address=(device, 22)
-    ) as tunnel:
-        try:
-            sock = socket.socket()
-            sock.connect(('127.0.0.1', tunnel.local_bind_port))
-            connection = ConnectHandler(
-                device_type="cisco_ios",
-                host='127.0.0.1',
-                port=tunnel.local_bind_port,
-                username=username,
-                password=password,
-                timeout=30  # Increase this value if necessary
-            )
-            output1 = connection.send_command("show ip int br | i up")
-            output2 = connection.send_command("show interface status | i connected")
-            connection.disconnect()
-            sock.close()
-            return device, len(output1.split("\n")), len(output2.split("\n"))
-        except NetMikoTimeoutException:
-            return device, "Error", "Error connecting via jump server"
-        except socket.error as e:
-            return device, "Error", f"Socket error: {e}"
+    except (NetmikoTimeoutException, NetmikoAuthenticationException) as e:
+        print(f"Failed to connect to {device['host']} - {e}")
+        return []
 
-# List to hold the results
-results = []
+def main():
+    devices = load_devices("devices.csv")
+    all_neighbors = []
 
-# Loop through each device
-for device in devices:
-    result = count_output_lines(device)
-    results.append(result)
+    for device in devices:
+        neighbors = get_cdp_neighbors(device)
+        all_neighbors.extend(neighbors)
 
-# Write the results to a CSV file
-with open("output.csv", "w", newline="") as file:
-    writer = csv.writer(file)
-    writer.writerow(["hostname", "number of up interfaces", "number of connected interfaces"])
-    writer.writerows(results)
+    # Write the parsed output to CSV
+    with open("cdp_neighbors.csv", "w", newline='') as file:
+        writer = csv.writer(file)
+        # Write header
+        writer.writerow(["Local Device", "Local Port", "Neighbor", "Neighbor Port", "Platform", "Capability", "Version", "Holdtime", "Advertisment Protocol", "Remote ID"])
+        # Write data
+        for neighbor in all_neighbors:
+            writer.writerow(neighbor)
+
+if __name__ == "__main__":
+    main()
